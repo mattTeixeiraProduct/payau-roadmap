@@ -1,0 +1,86 @@
+# Authentication Setup
+
+## Overview
+Simple credential-based authentication has been implemented for the roadmap visualization application.
+
+## Credentials
+- **Username**: `payProduct`
+- **Password**: `payProduct!@#`
+
+## Implementation Details
+
+### Files Created/Modified
+
+1. **`src/app/api/auth/route.ts`**
+   - API route for authentication
+   - Handles login (POST with credentials), logout (POST with action: logout), and auth check (GET)
+   - Uses HTTP-only cookies for session management
+   - Session expires after 7 days
+
+2. **`src/app/login/page.tsx`**
+   - Login page with username/password form
+   - Redirects to home page on successful authentication
+   - Shows error messages for invalid credentials
+
+3. **`src/middleware.ts`**
+   - Next.js middleware for route protection
+   - Redirects unauthenticated users to `/login`
+   - Redirects authenticated users away from `/login` to `/`
+   - Allows API routes to pass through
+
+4. **`src/components/logout-button.tsx`**
+   - Reusable logout button component
+   - Calls the auth API to clear session
+   - Redirects to login page after logout
+
+5. **`src/app/page.tsx`**
+   - Added LogoutButton to the header
+   - Positioned next to the "Create Project" button
+
+## How It Works
+
+1. **Initial Visit**
+   - User visits the app at `/`
+   - Middleware checks for authentication cookie
+   - Redirects to `/login` if not authenticated
+
+2. **Login**
+   - User enters credentials on login page
+   - Credentials are sent to `/api/auth` (POST)
+   - On success, HTTP-only cookie is set
+   - User is redirected to home page
+
+3. **Authenticated Session**
+   - Cookie is checked on each request via middleware
+   - Session lasts 7 days (configurable in route.ts)
+   - User can access all protected routes
+
+4. **Logout**
+   - User clicks "Logout" button
+   - Cookie is deleted via API call
+   - User is redirected to login page
+
+## Security Features
+
+- ✅ HTTP-only cookies (not accessible via JavaScript)
+- ✅ Secure flag in production (HTTPS only)
+- ✅ SameSite protection against CSRF
+- ✅ Server-side session validation
+- ✅ Protected routes via middleware
+
+## Development vs Production
+
+- **Development**: Cookies work over HTTP
+- **Production**: Cookies require HTTPS (secure flag)
+
+## Future Enhancements
+
+For production use, consider:
+- Moving credentials to environment variables
+- Adding rate limiting to prevent brute force attacks
+- Implementing proper user database
+- Adding password hashing
+- Implementing refresh tokens
+- Adding multi-factor authentication
+- Integrating with Clerk or other auth providers (as per user rules)
+

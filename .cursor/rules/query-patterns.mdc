@@ -1,0 +1,119 @@
+---
+alwaysApply: true
+---
+
+# Database Query Patterns
+
+## ALWAYS use query functions from `src/lib/db/queries.ts`
+
+```typescript
+// ✅ GOOD
+import { getAllProjects, createProject } from '@/lib/db/queries';
+const projects = await getAllProjects();
+
+// ❌ BAD - Don't create raw Supabase queries in components
+const { data } = await supabase.from('projects').select('*');
+```
+
+## ALWAYS include relations when fetching projects
+
+```typescript
+// ✅ GOOD - Use the pre-built query functions that include relations
+const projects = await getAllProjects(); // Returns ProjectWithRelations[]
+
+// ❌ BAD - Don't fetch projects without relations
+await supabase.from('projects').select('*');
+```
+
+## ALWAYS transform database data before using in UI
+
+```typescript
+// ✅ GOOD
+const dbProjects = await getAllProjects();
+const features = dbProjects.map(transformProject);
+setFeatures(features);
+
+// ❌ BAD - Don't use raw database objects in UI
+setFeatures(dbProjects); // Wrong: missing Date conversions, wrong field names
+```
+
+## Database Operations
+
+### Creating Projects
+```typescript
+// ✅ GOOD - Use the createProject query function
+const createdProject = await createProjectInDb({
+  name: 'Project Name',
+  description: 'Description',
+  start_date: startDate.toISOString().split('T')[0], // Format: YYYY-MM-DD
+  end_date: endDate.toISOString().split('T')[0],
+  status_id: statusId,
+  stream_id: streamId,
+  owner_id: ownerId,
+  // ... other fields
+});
+
+// Transform and add to state
+const transformed = transformProject(createdProject);
+setFeatures([...features, transformed]);
+```
+
+### Updating Projects
+```typescript
+// Pattern to follow when implementing updates
+const updatedProject = await updateProject(projectId, {
+  name: 'New Name',
+  status_id: newStatusId,
+  // Only include fields that changed
+});
+
+// Update local state
+setFeatures(features.map(f => 
+  f.id === projectId ? transformProject(updatedProject) : f
+));
+```
+
+### Deleting Projects
+```typescript
+// Pattern to follow when implementing deletes
+await deleteProject(projectId);
+
+// Update local state
+setFeatures(features.filter(f => f.id !== projectId));
+```
+
+## Error Handling
+
+```typescript
+// ✅ GOOD - Always handle async errors
+try {
+  const projects = await getAllProjects();
+  setFeatures(projects.map(transformProject));
+} catch (error) {
+  console.error('Error fetching projects:', error);
+  // Show user-friendly error message
+}
+```
+
+## Date Formatting
+
+```typescript
+// ✅ GOOD - Database expects YYYY-MM-DD format
+start_date: date.toISOString().split('T')[0]
+
+// ✅ GOOD - Transform database strings to Date objects
+startAt: new Date(project.start_date)
+```
+
+## Type Safety
+
+```typescript
+// ✅ GOOD - Always use typed queries
+import type { ProjectWithRelations, Status, Stream } from '@/types/database';
+
+// ✅ GOOD - Use Feature type for transformed data
+const [features, setFeatures] = useState<Feature[]>([]);
+
+// ❌ BAD - Don't use any or untyped state
+const [features, setFeatures] = useState([]);
+```

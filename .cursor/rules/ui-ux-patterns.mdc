@@ -1,0 +1,101 @@
+---
+alwaysApply: true
+---
+
+# UI/UX Patterns
+
+## Sidebar Filters
+
+### Implementation Pattern
+- Filter state lives in parent component
+- All views receive filtered data
+- Filters persist while switching views
+- Show project count in header
+
+```typescript
+// ✅ GOOD - Sidebar filter pattern
+const [selectedStreams, setSelectedStreams] = useState<string[]>(
+  streamMetadata.map(s => s.name)
+);
+
+const toggleStream = (streamName: string) => {
+  setSelectedStreams(prev =>
+    prev.includes(streamName)
+      ? prev.filter(s => s !== streamName)
+      : [...prev, streamName]
+  );
+};
+
+const filteredFeatures = features.filter(feature =>
+  selectedStreams.includes(feature.product.name)
+);
+```
+
+### Sidebar Components (shadcn)
+- Use `Sidebar`, `SidebarProvider`, `SidebarInset` from shadcn
+- Use `SidebarTrigger` for collapse/expand toggle
+- Use `Checkbox` for filter selections
+- Include "Select All" and "Clear All" quick actions
+
+## View Tabs Pattern
+
+```typescript
+// ✅ GOOD - Tabs for switching between views
+const views = [
+  { id: 'gantt', label: 'Gantt', icon: GanttChartSquareIcon, component: GanttView },
+  { id: 'calendar', label: 'Calendar', icon: CalendarIcon, component: CalendarView },
+  { id: 'list', label: 'List', icon: ListIcon, component: ListView },
+  { id: 'kanban', label: 'Kanban', icon: KanbanSquareIcon, component: KanbanView },
+  { id: 'table', label: 'Table', icon: TableIcon, component: TableView },
+];
+
+// Render with TabsList and TabsContent
+```
+
+## Dialog Patterns
+
+### Create Project Dialog
+- Use shadcn `Dialog` component
+- Include all required fields (marked with *)
+- Validate before submission
+- Reset form after successful creation
+- Show error messages for failures
+
+### Project Details Dialog
+- Display all project information
+- Format dates nicely using `date-fns`
+- Show status with color indicator
+- Include Close button
+
+## Loading States
+
+```typescript
+// ✅ GOOD - Show loading spinner with message
+if (loading) {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading roadmap...</p>
+      </div>
+    </div>
+  );
+}
+```
+
+## User Feedback
+
+- Always show loading states for async operations
+- Display error messages for failed operations
+- Show success feedback for completed actions
+- Update UI optimistically where appropriate
+- Show project counts in headers
+- Use tooltips for additional information
+
+## Accessibility
+
+- Use semantic HTML elements
+- Include ARIA labels for icon-only buttons
+- Ensure keyboard navigation works
+- Provide screen reader text with `sr-only` class
+- Use proper contrast ratios for colors

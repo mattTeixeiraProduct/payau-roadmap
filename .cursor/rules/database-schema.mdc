@@ -1,0 +1,66 @@
+---
+alwaysApply: true
+---
+
+# Database Schema & Structure
+
+## Database Architecture
+
+### Schema Design
+- **projects** - Main entity storing roadmap initiatives
+- **statuses** - Lookup table for project statuses (Not started, In progress, At risk, Done, Cancelled)
+- **streams** - Lookup table for product streams (Payments, Rewards, Growth, US, Mobile)
+- **users** - Project owners/team members
+- **initiatives** - Quarterly strategic initiatives
+- **releases** - Release versions/quarters
+
+### Relationships
+```
+projects (many) → status (one)
+projects (many) → stream (one)
+projects (many) → owner/user (one)
+projects (many) → initiative (one)
+projects (many) → release (one)
+```
+
+## Environment Variables
+
+```bash
+# Required for Supabase connection
+NEXT_PUBLIC_SUPABASE_URL=           # Your Supabase project URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # Your Supabase anon/public key
+```
+
+**NEVER commit `.env.local` to git** - it's already in `.gitignore`
+
+## Migration Guidelines
+
+### Adding New Migrations
+1. Create new file: `supabase/migrations/00X_description.sql`
+2. Number sequentially (001, 002, 003...)
+3. Include rollback instructions in comments
+4. Test in development before running in production
+
+### Schema Changes
+```sql
+-- ✅ GOOD - Always include IF NOT EXISTS/IF EXISTS
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS priority TEXT;
+
+-- ✅ GOOD - Add indexes for frequently queried columns
+CREATE INDEX IF NOT EXISTS idx_projects_priority ON projects(priority);
+
+-- ✅ GOOD - Update triggers for new tables
+CREATE TRIGGER update_tablename_updated_at BEFORE UPDATE ON tablename
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+## Security Notes
+
+### Row Level Security (RLS)
+- Currently: Permissive policies for development (public read/write)
+- Production: Must add authentication and restrict based on user roles
+
+### Environment Variables
+- All Supabase config is in environment variables
+- Never hardcode URLs or keys in code
+- Use `NEXT_PUBLIC_` prefix for client-side variables

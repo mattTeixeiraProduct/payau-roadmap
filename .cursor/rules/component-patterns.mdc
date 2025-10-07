@@ -1,0 +1,114 @@
+---
+alwaysApply: true
+---
+
+# Component Patterns
+
+## Client Components
+- Main page is a client component (`'use client'`)
+- Uses React hooks for state management
+- All view components (GanttView, CalendarView, etc.) are client-side
+
+## View Components Structure
+
+Each view component should:
+1. Accept `features` as prop (filtered data)
+2. Accept `setFeatures` if it supports mutations
+3. Handle loading states gracefully
+4. Use consistent styling with other views
+
+```typescript
+// ✅ GOOD - Consistent view component pattern
+const GanttView = ({ 
+  features, 
+  setFeatures,
+  onViewFeature
+}: { 
+  features: Feature[]; 
+  setFeatures: React.Dispatch<React.SetStateAction<Feature[]>>;
+  onViewFeature: (id: string) => void;
+}) => {
+  // Component logic
+};
+```
+
+## State Management Patterns
+
+### Centralized State
+```typescript
+// ✅ GOOD - Single source of truth in parent component
+const [features, setFeatures] = useState<Feature[]>([]);
+
+// Pass down to all views
+<GanttView features={filteredFeatures} setFeatures={setFeatures} />
+<CalendarView features={filteredFeatures} />
+<ListView features={filteredFeatures} setFeatures={setFeatures} />
+```
+
+### Filtering Pattern
+```typescript
+// ✅ GOOD - Filter in parent, pass filtered data to children
+const filteredFeatures = features.filter(feature =>
+  selectedStreams.includes(feature.product.name)
+);
+
+// Pass filtered data to views
+<GanttView features={filteredFeatures} setFeatures={setFeatures} />
+```
+
+## Dialog Patterns
+
+### Project Details Dialog
+```typescript
+// ✅ GOOD - Store selected feature, show in dialog
+const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
+const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+const handleViewFeature = (id: string) => {
+  const feature = features.find(f => f.id === id);
+  if (feature) {
+    setSelectedFeature(feature);
+    setIsDialogOpen(true);
+  }
+};
+```
+
+## Loading States
+
+```typescript
+// ✅ GOOD - Always show loading state for async operations
+const [loading, setLoading] = useState(true);
+
+if (loading) {
+  return <LoadingSpinner />;
+}
+```
+
+## shadcn-io Custom Components
+
+The project uses custom roadmap components in `src/components/ui/shadcn-io/`:
+- `gantt/` - Gantt chart timeline visualization
+- `calendar/` - Monthly calendar view
+- `kanban/` - Kanban board with drag-and-drop
+- `list/` - List view with status columns
+- `table/` - Data table with sorting
+
+**NEVER modify these components directly** unless necessary. They are complex, pre-built components.
+
+## Component Structure Template
+
+```typescript
+// 1. Imports
+import { ... } from '...';
+
+// 2. Types/Interfaces
+type MyComponentProps = { ... };
+
+// 3. Component
+const MyComponent = ({ ... }: MyComponentProps) => {
+  // 4. Hooks (useState, useEffect, etc.)
+  // 5. Event handlers
+  // 6. Computed values
+  // 7. Return JSX
+};
+```

@@ -1,0 +1,70 @@
+---
+alwaysApply: true
+---
+
+# Roadmap Visualization - Architecture Overview
+
+## Project Overview
+This is a Next.js 15 (App Router) roadmap visualization application using Supabase as the backend database and shadcn/ui components for the UI.
+
+## Tech Stack
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **UI Library**: shadcn/ui (Radix UI primitives)
+- **Styling**: Tailwind CSS
+- **State Management**: React hooks (useState, useEffect)
+- **Data Visualization**: Custom Gantt, Calendar, Kanban, List, and Table views
+
+## File Organization
+
+```
+src/
+├── app/
+│   ├── layout.tsx          # Root layout with metadata
+│   └── page.tsx            # Main roadmap page (client component)
+├── components/
+│   └── ui/
+│       ├── shadcn-io/      # Custom roadmap components (gantt, calendar, etc.)
+│       └── [component].tsx # shadcn/ui base components
+├── lib/
+│   ├── db/
+│   │   └── queries.ts      # Supabase database query functions
+│   ├── supabase/
+│   │   ├── client.ts       # Browser Supabase client
+│   │   └── server.ts       # Server Supabase client
+│   └── utils.ts            # Utility functions (cn helper)
+└── types/
+    └── database.ts         # TypeScript types for database schema
+
+supabase/
+├── migrations/             # SQL migration files
+│   ├── 001_create_projects_schema.sql
+│   ├── 002_seed_initial_data.sql
+│   └── 003_insert_existing_projects.sql
+└── README.md              # Database documentation
+```
+
+## Data Flow Pattern
+
+```
+Database (Supabase)
+    ↓
+Query Functions (src/lib/db/queries.ts)
+    ↓
+Transform Layer (transformProject function)
+    ↓
+React State (features array)
+    ↓
+View Components (GanttView, CalendarView, etc.)
+```
+
+## Key Principles
+
+1. **Database is source of truth** - All data comes from Supabase
+2. **Transform at boundaries** - Convert DB format ↔ UI format at the edges
+3. **Type everything** - Use TypeScript types throughout
+4. **Consistent patterns** - Follow existing patterns for new features
+5. **Single responsibility** - Each function/component has one job
+6. **Error handling** - Always handle async errors gracefully
+7. **User feedback** - Show loading states and error messages

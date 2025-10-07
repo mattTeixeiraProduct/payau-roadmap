@@ -1,0 +1,89 @@
+---
+alwaysApply: true
+---
+
+# Troubleshooting Guide
+
+## Common Issues
+
+### "Cannot find module" errors
+- Check imports use `@/` alias correctly
+- Verify `tsconfig.json` has proper path mappings
+- Make sure the module is installed in `package.json`
+
+### Database connection errors
+- Verify `.env.local` has correct credentials
+- Check Supabase dashboard shows project is active
+- Ensure RLS policies allow the operation
+- Restart dev server after updating `.env.local`
+
+### Type errors with database queries
+- Always use types from `@/types/database`
+- Transform database data using `transformProject` function
+- Don't mix Feature type with ProjectWithRelations type
+
+### View components not rendering
+- Check that features array is properly typed as `Feature[]`
+- Ensure all required props are passed
+- Verify shadcn-io components are properly installed
+- Check browser console for errors
+
+### "Loading roadmap..." never finishes
+- Check browser console for errors
+- Verify Supabase credentials in `.env.local`
+- Make sure migrations 001, 002, and 003 have been run
+- Check Supabase Table Editor for data
+
+### No projects showing up
+- Verify projects exist in Supabase Table Editor
+- Check that migration 003 was run successfully
+- Look for API errors in browser console
+- Verify RLS policies allow SELECT
+
+### "Failed to create project"
+- Check browser console for detailed error
+- Verify RLS policies allow INSERT
+- Make sure all reference data exists (statuses, streams, users)
+- Check that required fields are being sent
+
+## Testing Checklist
+
+When making changes, verify:
+- ✅ All 5 views work (Gantt, Calendar, List, Kanban, Table)
+- ✅ Sidebar filters apply to all views
+- ✅ Create Project dialog saves to database
+- ✅ Project details dialog shows correct information
+- ✅ Dates are formatted correctly (DB: YYYY-MM-DD, UI: formatted)
+- ✅ No TypeScript errors
+- ✅ No console errors in browser
+- ✅ Data persists across page reloads
+
+## Debugging Tips
+
+### Check Database Connection
+```typescript
+// Add temporarily to test connection
+useEffect(() => {
+  const testConnection = async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('statuses').select('*');
+    console.log('Supabase test:', { data, error });
+  };
+  testConnection();
+}, []);
+```
+
+### Verify Data Transformation
+```typescript
+// Log transformed data to check format
+console.log('Original:', project);
+console.log('Transformed:', transformProject(project));
+```
+
+### Check Filter State
+```typescript
+// Verify filtering is working correctly
+console.log('All features:', features);
+console.log('Selected streams:', selectedStreams);
+console.log('Filtered features:', filteredFeatures);
+```

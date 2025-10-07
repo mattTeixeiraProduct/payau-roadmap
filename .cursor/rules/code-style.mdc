@@ -1,0 +1,67 @@
+---
+alwaysApply: true
+---
+
+# Code Style Guidelines
+
+## Imports Order
+
+1. React/Next.js imports
+2. Third-party libraries
+3. UI components (shadcn/ui)
+4. Custom components
+5. Utils and helpers
+6. Types
+7. Styles
+
+## Naming Conventions
+
+- **Components**: PascalCase (GanttView, CalendarView)
+- **Functions**: camelCase (getAllProjects, transformProject)
+- **Types**: PascalCase (Feature, ProjectWithRelations)
+- **Constants**: camelCase or SCREAMING_SNAKE_CASE for true constants
+- **Database tables**: snake_case (projects, status_id)
+
+## Component Structure
+
+```typescript
+// 1. Imports
+import { ... } from '...';
+
+// 2. Types/Interfaces
+type MyComponentProps = { ... };
+
+// 3. Component
+const MyComponent = ({ ... }: MyComponentProps) => {
+  // 4. Hooks (useState, useEffect, etc.)
+  // 5. Event handlers
+  // 6. Computed values
+  // 7. Return JSX
+};
+```
+
+## Type Safety Rules
+
+```typescript
+// ✅ GOOD - Use the Feature type for transformed data
+const [features, setFeatures] = useState<Feature[]>([]);
+
+// ✅ GOOD - Use database types for API responses
+const projects: ProjectWithRelations[] = await getAllProjects();
+
+// ❌ BAD - Don't use any or untyped state
+const [features, setFeatures] = useState([]);
+```
+
+## Error Handling Pattern
+
+```typescript
+// ✅ GOOD - Always handle async errors gracefully
+try {
+  const projects = await getAllProjects();
+  setFeatures(projects.map(transformProject));
+} catch (error) {
+  console.error('Error fetching projects:', error);
+  // Show user-friendly error message
+}
+```

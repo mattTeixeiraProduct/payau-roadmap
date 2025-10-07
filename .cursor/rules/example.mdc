@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+---
+
+# Quick Reference - Roadmap Visualization Project
+
+## Project Type
+Next.js 15 (App Router) + Supabase + shadcn/ui Roadmap Visualization
+
+## Key Files
+- `src/app/page.tsx` - Main roadmap component (client-side)
+- `src/lib/db/queries.ts` - Database query functions
+- `src/types/database.ts` - TypeScript types
+- `supabase/migrations/` - Database migrations
+
+## Quick Commands
+
+### Development
+```bash
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run lint         # Run linter
+```
+
+### Database (Supabase CLI)
+```bash
+supabase db push     # Push migrations
+supabase db reset    # Reset database (⚠️ destructive)
+```
+
+## Important Rules
+1. ✅ ALWAYS use query functions from `src/lib/db/queries.ts`
+2. ✅ ALWAYS transform database data with `transformProject()`
+3. ✅ NEVER modify shadcn-io components directly
+4. ✅ ALWAYS handle async errors gracefully
+5. ✅ NEVER commit `.env.local`
+
+## Current Features
+- ✅ 5 view types (Gantt, Calendar, List, Kanban, Table)
+- ✅ Stream filtering sidebar
+- ✅ Create new projects
+- ✅ View project details
+- ✅ Supabase database integration
+
+## Status Values
+- Not started, In progress, At risk, Done, Cancelled
+
+## Stream Values
+- Payments, Rewards, Growth, US, Mobile

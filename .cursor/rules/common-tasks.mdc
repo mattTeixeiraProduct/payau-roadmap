@@ -1,0 +1,91 @@
+---
+alwaysApply: true
+---
+
+# Common Development Tasks
+
+## Adding a New Project Field
+
+1. **Update database schema:**
+   ```sql
+   ALTER TABLE projects ADD COLUMN new_field TEXT;
+   ```
+
+2. **Update TypeScript type** in `src/types/database.ts`:
+   ```typescript
+   export type Project = {
+     // ... existing fields
+     new_field: string | null;
+   }
+   ```
+
+3. **Update transformProject function** in `src/app/page.tsx`:
+   ```typescript
+   const transformProject = (project: ProjectWithRelations): Feature => ({
+     // ... existing fields
+     newField: project.new_field || '',
+   });
+   ```
+
+4. **Update Feature type** in `src/app/page.tsx`:
+   ```typescript
+   type Feature = {
+     // ... existing fields
+     newField: string;
+   };
+   ```
+
+5. **Update create/update forms** to include the new field
+
+## Adding a New View Type
+
+1. Create view component following existing pattern (GanttView, CalendarView, etc.)
+2. Add to views array in Example component
+3. Add icon import from lucide-react
+4. Add TabsTrigger and TabsContent entries
+
+## Adding a New Stream
+
+1. **Add to database** via Supabase SQL Editor:
+   ```sql
+   INSERT INTO streams (name, color, icon) 
+   VALUES ('New Stream', '#HEXCOLOR', 'IconName');
+   ```
+
+2. **Update streamMetadata** in `src/app/page.tsx`:
+   ```typescript
+   const streamMetadata = [
+     // ... existing streams
+     { name: 'New Stream', icon: IconName, color: '#HEXCOLOR' },
+   ];
+   ```
+
+3. **Import icon** from lucide-react if needed
+
+## Adding a New Status
+
+1. **Add to database** via Supabase SQL Editor:
+   ```sql
+   INSERT INTO statuses (name, color) 
+   VALUES ('New Status', '#HEXCOLOR');
+   ```
+
+2. **Update statusesRef** in `src/app/page.tsx`:
+   ```typescript
+   const statusesRef = [
+     // ... existing statuses
+     { id: 'new-status', name: 'New Status', color: '#HEXCOLOR' },
+   ];
+   ```
+
+## Performance Considerations
+
+### Data Fetching
+- Fetch all projects once on mount
+- Use local state for filtering/sorting
+- Only refetch after mutations (create/update/delete)
+
+### Optimizations
+- Use `useMemo` for expensive computations
+- Use `useCallback` for event handlers passed to children
+- Lazy load data if project count grows large

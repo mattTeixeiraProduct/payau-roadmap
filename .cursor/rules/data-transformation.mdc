@@ -1,0 +1,79 @@
+---
+alwaysApply: true
+---
+
+# Data Transformation Patterns
+
+## Feature vs ProjectWithRelations
+
+- **ProjectWithRelations**: Database type with all relations included
+- **Feature**: UI type with flattened structure optimized for components
+- **Always transform**: Use `transformProject()` function
+
+## Data Transformation Template
+
+```typescript
+// ALWAYS transform Supabase data to Feature format
+const transformProject = (project: ProjectWithRelations): Feature => ({
+  id: project.id,
+  name: project.name,
+  startAt: new Date(project.start_date),  // Convert string to Date
+  endAt: new Date(project.end_date),      // Convert string to Date
+  status: {
+    id: project.status.id,
+    name: project.status.name,
+    color: project.status.color,
+  },
+  owner: project.owner ? {
+    id: project.owner.id,
+    name: project.owner.name,
+    image: project.owner.image || '',
+  } : { id: '', name: '', image: '' },
+  group: {
+    id: project.stream.id,
+    name: project.stream.name,
+  },
+  product: {
+    id: project.stream.id,
+    name: project.stream.name,
+  },
+  initiative: project.initiative ? {
+    id: project.initiative.id,
+    name: project.initiative.name,
+  } : { id: '', name: '' },
+  release: project.release ? {
+    id: project.release.id,
+    name: project.release.name,
+  } : { id: '', name: '' },
+});
+```
+
+## Date Handling
+
+- **Database**: Stores dates as DATE type (YYYY-MM-DD)
+- **API**: Returns dates as strings (ISO format)
+- **UI**: Uses JavaScript Date objects
+- **Always convert**: String → Date when receiving, Date → String when sending
+
+```typescript
+// ✅ GOOD - Converting to database format
+start_date: date.toISOString().split('T')[0]
+
+// ✅ GOOD - Converting from database format
+startAt: new Date(project.start_date)
+```
+
+## Stream Metadata
+
+```typescript
+// Stream UI metadata (colors, icons) - defined in code
+const streamMetadata = [
+  { name: 'Payments', icon: DollarSign, color: '#3B82F6' },
+  // ... etc
+];
+
+// Stream data (names, IDs) - comes from database
+const streams = await getAllStreams();
+```
+
+**Important**: Stream colors and icons are defined in `streamMetadata` constant. Stream names and IDs come from database. Both must be kept in sync.

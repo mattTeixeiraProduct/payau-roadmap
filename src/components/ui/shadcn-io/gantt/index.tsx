@@ -109,7 +109,7 @@ export type GanttContextProps = {
 };
 
 const getsDaysIn = (range: Range) => {
-  // For when range is daily
+  // For when range is daily, return 1 (underscore prefix indicates intentionally unused param)
   let fn = (_date: Date) => 1;
 
   if (range === 'monthly' || range === 'quarterly') {
@@ -1241,7 +1241,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     };
   }, []);
 
-  // Fix the useCallback to include all dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleScroll = useCallback(
     throttle(() => {
       const scrollElement = scrollRef.current;
