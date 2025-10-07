@@ -1206,8 +1206,10 @@ export const GanttProvider: FC<GanttProviderProps> = ({
 
   useEffect(() => {
     if (scrollRef.current) {
+      // Scroll to show the current timeline area where projects start
+      // This positions the view closer to current/future projects
       scrollRef.current.scrollLeft =
-        scrollRef.current.scrollWidth / 2 - scrollRef.current.clientWidth / 2;
+        (scrollRef.current.scrollWidth * 2) / 3 - scrollRef.current.clientWidth / 2;
       setScrollX(scrollRef.current.scrollLeft);
     }
   }, [setScrollX]);
@@ -1439,6 +1441,26 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
     [date, gantt.range, gantt.columnWidth, gantt.zoom]
   );
 
+  const handleClick = useCallback(() => {
+    const scrollElement = gantt.ref?.current;
+    if (!scrollElement) {
+      return;
+    }
+
+    // Calculate the pixel position of "Today" marker
+    const columnWidth = (gantt.columnWidth * gantt.zoom) / 100;
+    const todayPosition = offset * columnWidth + innerOffset;
+    
+    // Scroll to position "Today" near the left side, just after the sidebar
+    // Add some padding (200px) to make it visible and comfortable
+    const targetScrollLeft = Math.max(0, todayPosition - 200);
+    
+    scrollElement.scrollTo({
+      left: targetScrollLeft,
+      behavior: 'smooth',
+    });
+  }, [gantt, offset, innerOffset]);
+
   return (
     <div
       className="pointer-events-none absolute top-0 left-0 z-20 flex h-full select-none flex-col items-center justify-center overflow-visible"
@@ -1447,9 +1469,11 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
         transform: `translateX(calc(var(--gantt-column-width) * ${offset} + ${innerOffset}px))`,
       }}
     >
-      <div
+      <button
+        onClick={handleClick}
+        type="button"
         className={cn(
-          'group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-card px-2 py-1 text-foreground text-xs',
+          'group pointer-events-auto sticky top-0 flex select-auto flex-col flex-nowrap items-center justify-center whitespace-nowrap rounded-b-md bg-card px-2 py-1 text-foreground text-xs cursor-pointer hover:bg-accent transition-colors',
           className
         )}
       >
@@ -1457,7 +1481,7 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
         <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
           {formatDate(date, 'MMM dd, yyyy')}
         </span>
-      </div>
+      </button>
       <div className={cn('h-full w-px bg-card', className)} />
     </div>
   );
