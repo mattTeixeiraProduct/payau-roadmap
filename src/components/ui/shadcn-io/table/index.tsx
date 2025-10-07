@@ -16,8 +16,8 @@ import {
 } from '@tanstack/react-table';
 import { atom, useAtom } from 'jotai';
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from 'lucide-react';
-import type { HTMLAttributes, ReactNode } from 'react';
-import { createContext, memo, useCallback, useContext } from 'react';
+import type { HTMLAttributes, ReactNode, MouseEvent } from 'react';
+import { createContext, memo, useCallback, useContext, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -210,18 +210,26 @@ export type TableRowProps = {
   children: (props: { cell: Cell<unknown, unknown> }) => ReactNode;
   className?: string;
   onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent<HTMLTableRowElement>) => void;
 };
 
-export const TableRow = ({ row, children, className, onClick }: TableRowProps) => (
-  <TableRowRaw
-    className={className}
-    data-state={row.getIsSelected() && 'selected'}
-    key={row.id}
-    onClick={onClick}
-  >
-    {row.getVisibleCells().map((cell) => children({ cell }))}
-  </TableRowRaw>
+export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
+  ({ row, children, className, onClick, onContextMenu, ...props }, ref) => (
+    <TableRowRaw
+      ref={ref}
+      className={className}
+      data-state={row.getIsSelected() && 'selected'}
+      key={row.id}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      {...props}
+    >
+      {row.getVisibleCells().map((cell) => children({ cell }))}
+    </TableRowRaw>
+  )
 );
+
+TableRow.displayName = 'TableRow';
 
 export type TableBodyProps = {
   children: (props: { row: Row<unknown> }) => ReactNode;

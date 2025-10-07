@@ -116,6 +116,7 @@ import {
   deleteProject,
   getAllStatuses,
   getAllStreams,
+  getAllOwners,
   getAllUsers,
   getAllInitiatives,
   getAllReleases,
@@ -124,6 +125,7 @@ import type {
   ProjectWithRelations,
   Status,
   Stream,
+  Owner,
   User,
   Initiative,
   Release,
@@ -155,7 +157,12 @@ type Feature = {
   startAt: Date;
   endAt: Date;
   status: { id: string; name: string; color: string };
-  owner: { id: string; name: string; image: string };
+  owner: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    role: string | null;
+  };
   group: { id: string; name: string };
   product: { id: string; name: string };
   initiative: { id: string; name: string };
@@ -222,7 +229,7 @@ const GanttView = ({
 
   return (
     <GanttProvider
-      className="rounded-none"
+      className="rounded-none flex-1"
       onAddItem={handleAddFeature}
       range="monthly"
       zoom={100}
@@ -262,7 +269,7 @@ const GanttView = ({
                           </p>
                           {feature.owner && (
                             <Avatar className="h-4 w-4">
-                              <AvatarImage src={feature.owner.image} />
+                              <AvatarImage src={feature.owner.avatarUrl} />
                               <AvatarFallback>
                                 {feature.owner.name?.slice(0, 2)}
                               </AvatarFallback>
@@ -373,7 +380,7 @@ const ListView = ({
                   </p>
                   {feature.owner && (
                     <Avatar className="h-4 w-4 shrink-0">
-                      <AvatarImage src={feature.owner.image} />
+                      <AvatarImage src={feature.owner.avatarUrl} />
                       <AvatarFallback>
                         {feature.owner.name?.slice(0, 2)}
                       </AvatarFallback>
@@ -465,7 +472,7 @@ const KanbanView = ({
                   </div>
                   {feature.owner && (
                     <Avatar className="h-4 w-4 shrink-0">
-                      <AvatarImage src={feature.owner.image} />
+                      <AvatarImage src={feature.owner.avatarUrl} />
                       <AvatarFallback>
                         {feature.owner.name?.slice(0, 2)}
                       </AvatarFallback>
@@ -496,7 +503,7 @@ const TableView = ({ features }: { features: Feature[] }) => {
         <div className="flex items-center gap-2">
           <div className="relative">
             <Avatar className="size-6">
-              <AvatarImage src={row.original.owner.image} />
+              <AvatarImage src={row.original.owner.avatarUrl} />
               <AvatarFallback>
                 {row.original.owner.name?.slice(0, 2)}
               </AvatarFallback>
@@ -572,6 +579,124 @@ const TableView = ({ features }: { features: Feature[] }) => {
   );
 };
 
+const BacklogTableView = ({ 
+  features, 
+  onEditFeature,
+  onDeleteFeature,
+}: { 
+  features: Feature[];
+  onEditFeature: (id: string) => void;
+  onDeleteFeature: (id: string) => void;
+}) => {
+  const columns: ColumnDef<Feature>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => (
+        <TableColumnHeader column={column} title="Name" />
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Avatar className="size-6">
+                <AvatarImage src={row.original.owner.avatarUrl} />
+                <AvatarFallback>
+                  {row.original.owner.name?.slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+
+              <div
+                className="absolute right-0 bottom-0 h-2 w-2 rounded-full ring-2 ring-background"
+                style={{
+                  backgroundColor: row.original.status.color,
+                }}
+              />
+            </div>
+            <div>
+              <span className="font-medium">{row.original.name}</span>
+              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                <span>{row.original.product.name}</span>
+                <ChevronRightIcon size={12} />
+                <span>{row.original.group.name}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "startAt",
+      header: ({ column }) => (
+        <TableColumnHeader column={column} title="Start At" />
+      ),
+      cell: ({ row }) =>
+        new Intl.DateTimeFormat("en-US", {
+          dateStyle: "medium",
+        }).format(row.original.startAt),
+    },
+    {
+      accessorKey: "endAt",
+      header: ({ column }) => (
+        <TableColumnHeader column={column} title="End At" />
+      ),
+      cell: ({ row }) =>
+        new Intl.DateTimeFormat("en-US", {
+          dateStyle: "medium",
+        }).format(row.original.endAt),
+    },
+    {
+      id: "release",
+      accessorFn: (row) => row.release.id,
+      header: ({ column }) => (
+        <TableColumnHeader column={column} title="Release" />
+      ),
+      cell: ({ row }) => row.original.release.name,
+    },
+  ];
+
+  return (
+    <div className="w-full h-full overflow-auto">
+      <TableProvider columns={columns} data={features}>
+        <TableHeader>
+          {({ headerGroup }) => (
+            <TableHeaderGroup headerGroup={headerGroup} key={headerGroup.id}>
+              {({ header }) => <TableHead header={header} key={header.id} />}
+            </TableHeaderGroup>
+          )}
+        </TableHeader>
+        <TableBody>
+          {({ row }) => {
+            const feature = row.original as Feature;
+            return (
+              <ContextMenu key={row.id}>
+                <ContextMenuTrigger asChild>
+                  <TableRow row={row} className="hover:bg-muted/50">
+                    {({ cell }) => <TableCell cell={cell} key={cell.id} />}
+                  </TableRow>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem
+                    className="flex items-center gap-2"
+                    onClick={() => onEditFeature(feature.id)}
+                  >
+                    Edit project
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    className="flex items-center gap-2 text-destructive"
+                    onClick={() => onDeleteFeature(feature.id)}
+                  >
+                    Delete project
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          }}
+        </TableBody>
+      </TableProvider>
+    </div>
+  );
+};
+
 // Transform Supabase projects to app format
 const transformProject = (project: ProjectWithRelations): Feature => ({
   id: project.id,
@@ -588,9 +713,10 @@ const transformProject = (project: ProjectWithRelations): Feature => ({
     ? {
         id: project.owner.id,
         name: project.owner.name,
-        image: project.owner.image || "",
+        avatarUrl: project.owner.avatar_url || "",
+        role: project.owner.role || null,
       }
-    : { id: "", name: "", image: "" },
+    : { id: "", name: "", avatarUrl: "", role: null },
   group: {
     id: project.stream.id,
     name: project.stream.name,
@@ -629,6 +755,7 @@ const Example = () => {
     startDate: new Date(),
     endDate: new Date(),
     status: "",
+    owner: "",
     description: "",
   });
   const [editProject, setEditProject] = useState({
@@ -638,8 +765,10 @@ const Example = () => {
     startDate: new Date(),
     endDate: new Date(),
     status: "",
+    owner: "",
     description: "",
   });
+  const [owners, setOwners] = useState<Owner[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -661,7 +790,17 @@ const Example = () => {
       }
     };
 
+    const fetchOwnersList = async () => {
+      try {
+        const ownerList = await getAllOwners();
+        setOwners(ownerList);
+      } catch (error) {
+        console.error("Error fetching owners:", error);
+      }
+    };
+
     fetchProjects();
+    fetchOwnersList();
   }, []);
 
   const handleViewFeature = (id: string) => {
@@ -682,6 +821,7 @@ const Example = () => {
         startDate: feature.startAt,
         endDate: feature.endAt,
         status: feature.status.name,
+        owner: feature.owner.name,
         description: feature.description,
       });
       setIsEditDialogOpen(true);
@@ -712,6 +852,7 @@ const Example = () => {
       const results = await Promise.all([
         getAllStatuses(),
         getAllStreams(),
+        getAllOwners(),
         getAllUsers(),
         getAllInitiatives(),
         getAllReleases(),
@@ -719,12 +860,16 @@ const Example = () => {
 
       const statuses = results[0] as Status[];
       const streams = results[1] as Stream[];
-      const users = results[2] as User[];
-      const initiatives = results[3] as Initiative[];
-      const releases = results[4] as Release[];
+      const ownersFromDb = results[2] as Owner[];
+      const users = results[3] as User[];
+      const initiatives = results[4] as Initiative[];
+      const releases = results[5] as Release[];
 
       const selectedStream = streams.find((s) => s.name === newProject.stream);
       const selectedStatus = statuses.find((s) => s.name === newProject.status);
+      const selectedOwner = ownersFromDb.find(
+        (owner) => owner.name === newProject.owner
+      );
       const defaultUser = users.find((u) => u.name === "Product Team");
 
       if (!selectedStream || !selectedStatus) {
@@ -758,7 +903,7 @@ const Example = () => {
         end_date: newProject.endDate.toISOString().split("T")[0],
         status_id: selectedStatus.id,
         stream_id: selectedStream.id,
-        owner_id: defaultUser?.id || null,
+        owner_id: selectedOwner?.id || defaultUser?.id || null,
         initiative_id: initiative?.id || null,
         release_id: release?.id || null,
         progress: 0,
@@ -776,6 +921,7 @@ const Example = () => {
         startDate: new Date(),
         endDate: new Date(),
         status: "",
+        owner: "",
         description: "",
       });
     } catch (error) {
@@ -798,18 +944,23 @@ const Example = () => {
       const results = await Promise.all([
         getAllStatuses(),
         getAllStreams(),
+        getAllOwners(),
         getAllInitiatives(),
         getAllReleases(),
       ]);
 
       const statuses = results[0] as Status[];
       const streams = results[1] as Stream[];
-      const initiatives = results[2] as Initiative[];
-      const releases = results[3] as Release[];
+      const owners = results[2] as Owner[];
+      const initiatives = results[3] as Initiative[];
+      const releases = results[4] as Release[];
 
       const selectedStream = streams.find((s) => s.name === editProject.stream);
       const selectedStatus = statuses.find(
         (s) => s.name === editProject.status
+      );
+      const selectedOwner = owners.find(
+        (owner) => owner.name === editProject.owner
       );
 
       if (!selectedStream || !selectedStatus) {
@@ -843,6 +994,7 @@ const Example = () => {
         end_date: editProject.endDate.toISOString().split("T")[0],
         status_id: selectedStatus.id,
         stream_id: selectedStream.id,
+        owner_id: selectedOwner?.id || null,
         initiative_id: initiative?.id || null,
         release_id: release?.id || null,
       });
@@ -867,6 +1019,7 @@ const Example = () => {
         startDate: new Date(),
         endDate: new Date(),
         status: "",
+        owner: "",
         description: "",
       });
     } catch (error) {
@@ -994,6 +1147,32 @@ const Example = () => {
                               {stream.name}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="owner">Owner</Label>
+                      <Select
+                        value={newProject.owner}
+                        onValueChange={(value) =>
+                          setNewProject({ ...newProject, owner: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an owner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {owners.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No owners available
+                            </SelectItem>
+                          ) : (
+                            owners.map((owner) => (
+                              <SelectItem key={owner.id} value={owner.name}>
+                                {owner.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1162,6 +1341,32 @@ const Example = () => {
                               {status.name}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-owner">Owner</Label>
+                      <Select
+                        value={editProject.owner}
+                        onValueChange={(value) =>
+                          setEditProject({ ...editProject, owner: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an owner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {owners.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No owners available
+                            </SelectItem>
+                          ) : (
+                            owners.map((owner) => (
+                              <SelectItem key={owner.id} value={owner.name}>
+                                {owner.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1480,7 +1685,7 @@ const Example = () => {
                     <Label className="text-sm font-semibold">Owner</Label>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={selectedFeature.owner.image} />
+                        <AvatarImage src={selectedFeature.owner.avatarUrl} />
                         <AvatarFallback>
                           {selectedFeature.owner.name?.slice(0, 2)}
                         </AvatarFallback>

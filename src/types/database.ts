@@ -1,5 +1,19 @@
 // Database types matching Supabase schema
 
+export type Owner = {
+  id: string;
+  name: string;
+  role: string | null;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  slack_handle: string | null;
+  bio: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Status = {
   id: string;
   name: string;
@@ -64,7 +78,7 @@ export type Project = {
 export type ProjectWithRelations = Project & {
   status: Status;
   stream: Stream;
-  owner: User | null;
+  owner: Owner | null;
   initiative: Initiative | null;
   release: Release | null;
 };
@@ -73,6 +87,13 @@ export type ProjectWithRelations = Project & {
 export type Database = {
   public: {
     Tables: {
+      owners: {
+        Row: Owner;
+        Insert: Omit<Owner, 'id' | 'created_at' | 'updated_at' | 'active'> & {
+          active?: boolean;
+        };
+        Update: Partial<Omit<Owner, 'id' | 'created_at' | 'updated_at'>>;
+      };
       statuses: {
         Row: Status;
         Insert: Omit<Status, 'id' | 'created_at' | 'updated_at'>;

@@ -8,10 +8,11 @@ import {
   getAllStatuses as getAllStatusesQuery,
   getAllStreams as getAllStreamsQuery,
   getAllUsers as getAllUsersQuery,
+  getAllOwners as getAllOwnersQuery,
   getAllInitiatives as getAllInitiativesQuery,
   getAllReleases as getAllReleasesQuery,
 } from '@/lib/db/queries';
-import type { ProjectWithRelations, Status, Stream, User, Initiative, Release, Database } from '@/types/database';
+import type { ProjectWithRelations, Status, Stream, Owner, User, Initiative, Release, Database } from '@/types/database';
 
 /**
  * Server action to fetch all projects
@@ -79,4 +80,11 @@ export async function getAllInitiatives(): Promise<Initiative[]> {
  */
 export async function getAllReleases(): Promise<Release[]> {
   return getAllReleasesQuery();
+}
+
+/**
+ * Server action to fetch all owners
+ */
+export async function getAllOwners(): Promise<Owner[]> {
+  return getAllOwnersQuery();
 }

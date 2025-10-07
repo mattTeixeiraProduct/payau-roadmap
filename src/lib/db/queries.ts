@@ -3,6 +3,7 @@ import type {
   ProjectWithRelations,
   Status,
   Stream,
+  Owner,
   Database,
 } from "@/types/database";
 
@@ -19,7 +20,7 @@ export async function getAllProjects(): Promise<ProjectWithRelations[]> {
       *,
       status:statuses(*),
       stream:streams(*),
-      owner:users(*),
+      owner:owners(*),
       initiative:initiatives(*),
       release:releases(*)
     `
@@ -49,7 +50,7 @@ export async function getProjectsByStream(
       *,
       status:statuses(*),
       stream:streams(*),
-      owner:users(*),
+      owner:owners(*),
       initiative:initiatives(*),
       release:releases(*)
     `
@@ -80,7 +81,7 @@ export async function getProjectsByStatus(
       *,
       status:statuses(*),
       stream:streams(*),
-      owner:users(*),
+      owner:owners(*),
       initiative:initiatives(*),
       release:releases(*)
     `
@@ -113,7 +114,7 @@ export async function createProject(
       *,
       status:statuses(*),
       stream:streams(*),
-      owner:users(*),
+      owner:owners(*),
       initiative:initiatives(*),
       release:releases(*)
     `
@@ -147,7 +148,7 @@ export async function updateProject(
       *,
       status:statuses(*),
       stream:streams(*),
-      owner:users(*),
+      owner:owners(*),
       initiative:initiatives(*),
       release:releases(*)
     `
@@ -227,6 +228,25 @@ export async function getAllUsers() {
 
   if (error) {
     console.error("Error fetching users:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Fetch all owners
+ */
+export async function getAllOwners(): Promise<Owner[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("owners")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching owners:", error);
     throw error;
   }
 

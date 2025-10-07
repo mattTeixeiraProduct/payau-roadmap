@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  SidebarTrigger,
-  SidebarInset,
-} from "@/components/ui/sidebar";
+import { SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { LayoutList, Plus, CalendarIcon, DollarSign, TrendingUp, Users, Globe, Smartphone } from "lucide-react";
+import {
+  LayoutList,
+  Plus,
+  CalendarIcon,
+  DollarSign,
+  TrendingUp,
+  Users,
+  Globe,
+  Smartphone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,7 +44,7 @@ import {
   getAllProjects,
   getAllStatuses,
   getAllStreams,
-  getAllUsers,
+  getAllOwners,
   getAllInitiatives,
   getAllReleases,
   createProject as createProjectInDb,
@@ -49,7 +55,7 @@ import type {
   ProjectWithRelations,
   Status,
   Stream,
-  User,
+  Owner,
   Initiative,
   Release,
 } from "@/types/database";
@@ -81,7 +87,6 @@ const streamMetadata = [
   { name: "Mobile", icon: Smartphone, color: "#F97316" },
 ];
 
-
 // Type for feature objects used in the app
 type Feature = {
   id: string;
@@ -90,7 +95,7 @@ type Feature = {
   startAt: Date;
   endAt: Date;
   status: { id: string; name: string; color: string };
-  owner: { id: string; name: string; image: string };
+  owner: { id: string; name: string; avatarUrl: string; role: string | null };
   group: { id: string; name: string };
   product: { id: string; name: string };
   initiative: { id: string; name: string };
@@ -113,9 +118,10 @@ const transformProject = (project: ProjectWithRelations): Feature => ({
     ? {
         id: project.owner.id,
         name: project.owner.name,
-        image: project.owner.image || "",
+        avatarUrl: project.owner.avatar_url || "",
+        role: project.owner.role || null,
       }
-    : { id: "", name: "", image: "" },
+    : { id: "", name: "", avatarUrl: "", role: null },
   group: {
     id: project.stream.id,
     name: project.stream.name,
@@ -138,11 +144,11 @@ const transformProject = (project: ProjectWithRelations): Feature => ({
     : { id: "", name: "" },
 });
 
-const BacklogTableView = ({ 
-  features, 
+const BacklogTableView = ({
+  features,
   onEditFeature,
   onDeleteFeature,
-}: { 
+}: {
   features: Feature[];
   onEditFeature: (id: string) => void;
   onDeleteFeature: (id: string) => void;
@@ -158,7 +164,7 @@ const BacklogTableView = ({
           <div className="flex items-center gap-2">
             <div className="relative">
               <Avatar className="size-6">
-                <AvatarImage src={row.original.owner.image} />
+                <AvatarImage src={row.original.owner.avatarUrl} />
                 <AvatarFallback>
                   {row.original.owner.name?.slice(0, 2)}
                 </AvatarFallback>
@@ -211,52 +217,130 @@ const BacklogTableView = ({
       ),
       cell: ({ row }) => row.original.release.name,
     },
+    {
+      accessorKey: "owner",
+      header: ({ column }) => (
+        <TableColumnHeader column={column} title="Owner" />
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={row.original.owner.avatarUrl} />
+            <AvatarFallback>
+              {row.original.owner.name?.slice(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">
+              {row.original.owner.name}
+            </span>
+            {row.original.owner.role && (
+              <span className="text-xs text-muted-foreground">
+                {row.original.owner.role}
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
   ];
 
+  const renderTable = (items: Feature[]) => (
+    <TableProvider columns={columns} data={items}>
+      <TableHeader>
+        {({ headerGroup }) => (
+          <TableHeaderGroup headerGroup={headerGroup} key={headerGroup.id}>
+            {({ header }) => <TableHead header={header} key={header.id} />}
+          </TableHeaderGroup>
+        )}
+      </TableHeader>
+      <TableBody>
+        {({ row }) => {
+          const feature = row.original as Feature;
+          return (
+            <ContextMenu key={row.id}>
+              <ContextMenuTrigger asChild>
+                <TableRow row={row} className="hover:bg-muted/50">
+                  {({ cell }) => <TableCell cell={cell} key={cell.id} />}
+                </TableRow>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem
+                  className="flex items-center gap-2"
+                  onClick={() => onEditFeature(feature.id)}
+                >
+                  Edit project
+                </ContextMenuItem>
+                <ContextMenuItem
+                  className="flex items-center gap-2 text-destructive"
+                  onClick={() => onDeleteFeature(feature.id)}
+                >
+                  Delete project
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          );
+        }}
+      </TableBody>
+    </TableProvider>
+  );
+
+  const groupedByStream = streamMetadata.map((stream) => ({
+    stream,
+    items: features.filter((feature) => feature.product.name === stream.name),
+  }));
+
+  const otherFeatures = features.filter(
+    (feature) =>
+      !streamMetadata.some((stream) => stream.name === feature.product.name)
+  );
+
   return (
-    <div className="w-full h-full overflow-auto">
-      <TableProvider columns={columns} data={features}>
-        <TableHeader>
-          {({ headerGroup }) => (
-            <TableHeaderGroup headerGroup={headerGroup} key={headerGroup.id}>
-              {({ header }) => <TableHead header={header} key={header.id} />}
-            </TableHeaderGroup>
-          )}
-        </TableHeader>
-        <TableBody>
-          {({ row }) => {
-            const feature = row.original as Feature;
-            return (
-              <ContextMenu key={row.id}>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <TableRow
-                      row={row}
-                      className="hover:bg-muted/50"
-                    >
-                      {({ cell }) => <TableCell cell={cell} key={cell.id} />}
-                    </TableRow>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem
-                    className="flex items-center gap-2"
-                    onClick={() => onEditFeature(feature.id)}
-                  >
-                    Edit project
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    className="flex items-center gap-2 text-destructive"
-                    onClick={() => onDeleteFeature(feature.id)}
-                  >
-                    Delete project
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            );
-          }}
-        </TableBody>
-      </TableProvider>
+    <div className="w-full h-full overflow-auto space-y-6 p-2">
+      {groupedByStream.map(({ stream, items }) => {
+        if (!items.length) {
+          return null;
+        }
+
+        const StreamIcon = stream.icon;
+
+        return (
+          <div key={stream.name} className="space-y-2">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded-md"
+                  style={{ backgroundColor: stream.color }}
+                >
+                  <StreamIcon className="h-3 w-3 text-white" />
+                </div>
+                <span className="font-semibold text-sm">{stream.name}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {items.length} project{items.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="rounded-md border bg-card">
+              {renderTable(items)}
+            </div>
+          </div>
+        );
+      })}
+
+      {otherFeatures.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-2">
+            <span className="font-semibold text-sm">Other Streams</span>
+            <span className="text-xs text-muted-foreground">
+              {otherFeatures.length} project
+              {otherFeatures.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="rounded-md border bg-card">
+            {renderTable(otherFeatures)}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -267,6 +351,7 @@ const BacklogPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [statusOptions, setStatusOptions] = useState<Status[]>([]);
+  const [owners, setOwners] = useState<Owner[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -275,6 +360,7 @@ const BacklogPage = () => {
     startDate: new Date(),
     endDate: new Date(),
     status: "Backlog", // Pre-set to Backlog
+    owner: "",
     description: "",
   });
   const [editProject, setEditProject] = useState({
@@ -284,6 +370,7 @@ const BacklogPage = () => {
     startDate: new Date(),
     endDate: new Date(),
     status: "Backlog",
+    owner: "",
     description: "",
   });
 
@@ -304,17 +391,22 @@ const BacklogPage = () => {
       }
     };
 
-    const fetchStatuses = async () => {
+    const fetchMetadata = async () => {
       try {
-        const statuses = (await getAllStatuses()) as Status[];
-        setStatusOptions(statuses);
+        const [statuses, ownersData] = await Promise.all([
+          getAllStatuses(),
+          getAllOwners(),
+        ]);
+
+        setStatusOptions(statuses as Status[]);
+        setOwners(ownersData as Owner[]);
       } catch (error) {
-        console.error("Error fetching statuses:", error);
+        console.error("Error fetching metadata:", error);
       }
     };
 
     fetchBacklogProjects();
-    fetchStatuses();
+    fetchMetadata();
   }, []);
 
   const handleCreateProject = async () => {
@@ -329,20 +421,22 @@ const BacklogPage = () => {
       const results = await Promise.all([
         getAllStatuses(),
         getAllStreams(),
-        getAllUsers(),
+        getAllOwners(),
         getAllInitiatives(),
         getAllReleases(),
       ]);
 
       const statuses = results[0] as Status[];
       const streams = results[1] as Stream[];
-      const users = results[2] as User[];
+      const ownersData = results[2] as Owner[];
       const initiatives = results[3] as Initiative[];
       const releases = results[4] as Release[];
 
       const selectedStream = streams.find((s) => s.name === newProject.stream);
       const selectedStatus = statuses.find((s) => s.name === "Backlog");
-      const defaultUser = users.find((u) => u.name === "Product Team");
+      const selectedOwner = ownersData.find(
+        (owner) => owner.name === newProject.owner
+      );
 
       if (!selectedStream || !selectedStatus) {
         alert("Invalid stream or status selection");
@@ -375,7 +469,7 @@ const BacklogPage = () => {
         end_date: newProject.endDate.toISOString().split("T")[0],
         status_id: selectedStatus.id,
         stream_id: selectedStream.id,
-        owner_id: defaultUser?.id || null,
+        owner_id: selectedOwner?.id || null,
         initiative_id: initiative?.id || null,
         release_id: release?.id || null,
         progress: 0,
@@ -393,6 +487,7 @@ const BacklogPage = () => {
         startDate: new Date(),
         endDate: new Date(),
         status: "Backlog",
+        owner: "",
         description: "",
       });
     } catch (error) {
@@ -413,6 +508,7 @@ const BacklogPage = () => {
         startDate: feature.startAt,
         endDate: feature.endAt,
         status: feature.status.name,
+        owner: feature.owner.name,
         description: feature.description,
       });
       setIsEditDialogOpen(true);
@@ -455,7 +551,12 @@ const BacklogPage = () => {
       const releases = results[3] as Release[];
 
       const selectedStream = streams.find((s) => s.name === editProject.stream);
-      const selectedStatus = statuses.find((s) => s.name === editProject.status);
+      const selectedStatus = statuses.find(
+        (s) => s.name === editProject.status
+      );
+      const selectedOwner = owners.find(
+        (owner) => owner.name === editProject.owner
+      );
 
       if (!selectedStream || !selectedStatus) {
         alert("Invalid stream or status selection");
@@ -488,6 +589,7 @@ const BacklogPage = () => {
         end_date: editProject.endDate.toISOString().split("T")[0],
         status_id: selectedStatus.id,
         stream_id: selectedStream.id,
+        owner_id: selectedOwner?.id || null,
         initiative_id: initiative?.id || null,
         release_id: release?.id || null,
       });
@@ -507,6 +609,7 @@ const BacklogPage = () => {
         startDate: new Date(),
         endDate: new Date(),
         status: "Backlog",
+        owner: "",
         description: "",
       });
     } catch (error) {
@@ -520,7 +623,7 @@ const BacklogPage = () => {
   if (loading) {
     return (
       <SidebarInset>
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-screen flex-1 w-full items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading backlog...</p>
@@ -586,39 +689,70 @@ const BacklogPage = () => {
                     rows={3}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="stream">Stream *</Label>
+                <div className="flex flex-row gap-2 w-full">
+                  <div className="flex flex-col gap-2 w-full">
+                    <Label htmlFor="stream">Stream *</Label>
+                    <Select
+                      value={newProject.stream}
+                      onValueChange={(value) =>
+                        setNewProject({ ...newProject, stream: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue className="w-full" placeholder="Select a stream" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {streamMetadata.map((stream) => (
+                          <SelectItem key={stream.name} value={stream.name}>
+                            {stream.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <Label htmlFor="status">Status</Label>
+                    <Input
+                      id="status"
+                      value="Backlog"
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Status is automatically set to Backlog
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 w-full">
+                  <Label htmlFor="owner">Owner</Label>
                   <Select
-                    value={newProject.stream}
+                    value={newProject.owner}
                     onValueChange={(value) =>
-                      setNewProject({ ...newProject, stream: value })
+                      setNewProject({ ...newProject, owner: value })
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a stream" />
+                      <SelectValue
+                        className="w-full"
+                        placeholder="Select an owner"
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {streamMetadata.map((stream) => (
-                        <SelectItem key={stream.name} value={stream.name}>
-                          {stream.name}
+                      {owners.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No owners available
                         </SelectItem>
-                      ))}
+                      ) : (
+                        owners.map((owner) => (
+                          <SelectItem key={owner.id} value={owner.name}>
+                            {owner.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Input
-                    id="status"
-                    value="Backlog"
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Status is automatically set to Backlog
-                  </p>
-                </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <Label>Start Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -643,7 +777,7 @@ const BacklogPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <Label>End Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -685,10 +819,7 @@ const BacklogPage = () => {
           </Dialog>
 
           {/* Edit Project Dialog */}
-          <Dialog
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-          >
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="sm:max-w-[525px]">
               <DialogHeader>
                 <DialogTitle>Edit Backlog Project</DialogTitle>
@@ -726,7 +857,7 @@ const BacklogPage = () => {
                     rows={3}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="edit-stream">Stream *</Label>
                   <Select
                     value={editProject.stream}
@@ -735,7 +866,7 @@ const BacklogPage = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a stream" />
+                      <SelectValue className="w-full" placeholder="Select a stream" />
                     </SelectTrigger>
                     <SelectContent>
                       {streamMetadata.map((stream) => (
@@ -746,7 +877,7 @@ const BacklogPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <Label htmlFor="edit-status">Status *</Label>
                   <Select
                     value={editProject.status}
@@ -755,7 +886,7 @@ const BacklogPage = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a status" />
+                      <SelectValue className="w-full" placeholder="Select a status" />
                     </SelectTrigger>
                     <SelectContent>
                       {statusOptions.map((status) => (
@@ -766,7 +897,36 @@ const BacklogPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
+                  <Label htmlFor="edit-owner">Owner</Label>
+                  <Select
+                    value={editProject.owner}
+                    onValueChange={(value) =>
+                      setEditProject({ ...editProject, owner: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        className="w-full"
+                        placeholder="Select an owner"
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {owners.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No owners available
+                        </SelectItem>
+                      ) : (
+                        owners.map((owner) => (
+                          <SelectItem key={owner.id} value={owner.name}>
+                            {owner.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2 w-full">
                   <Label>Start Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -794,7 +954,7 @@ const BacklogPage = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="grid gap-2">
+                <div className="flex flex-col gap-2 w-full">
                   <Label>End Date *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -835,13 +995,15 @@ const BacklogPage = () => {
             </DialogContent>
           </Dialog>
         </div>
-        
+
         {features.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="text-center space-y-4">
               <LayoutList className="h-16 w-16 mx-auto text-muted-foreground" />
               <div>
-                <h2 className="text-2xl font-semibold mb-2">No Backlog Projects Yet</h2>
+                <h2 className="text-2xl font-semibold mb-2">
+                  No Backlog Projects Yet
+                </h2>
                 <p className="text-muted-foreground max-w-md">
                   Create your first backlog project using the button above.
                 </p>
