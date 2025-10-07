@@ -209,13 +209,15 @@ export type TableRowProps = {
   row: Row<unknown>;
   children: (props: { cell: Cell<unknown, unknown> }) => ReactNode;
   className?: string;
+  onClick?: () => void;
 };
 
-export const TableRow = ({ row, children, className }: TableRowProps) => (
+export const TableRow = ({ row, children, className, onClick }: TableRowProps) => (
   <TableRowRaw
     className={className}
     data-state={row.getIsSelected() && 'selected'}
     key={row.id}
+    onClick={onClick}
   >
     {row.getVisibleCells().map((cell) => children({ cell }))}
   </TableRowRaw>

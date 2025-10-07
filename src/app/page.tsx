@@ -57,6 +57,9 @@ import {
   Smartphone,
   Plus,
   Pencil,
+  Check,
+  ChevronsUpDown,
+  X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -94,20 +97,18 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarProvider,
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   getAllProjects,
   createProject as createProjectInDb,
@@ -297,7 +298,7 @@ const GanttView = ({
                         onClick={() => handleRemoveFeature(feature.id)}
                       >
                         <TrashIcon size={16} />
-                        Remove from roadmap
+                        Delete from roadmap
                       </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
@@ -639,6 +640,11 @@ const Example = () => {
     status: "",
     description: "",
   });
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const filterOutBacklog = (items: Feature[]) =>
+    items.filter((item) => item.status.name !== "Backlog");
 
   // Fetch projects from Supabase on mount
   useEffect(() => {
@@ -647,7 +653,7 @@ const Example = () => {
         setLoading(true);
         const projects = await getAllProjects();
         const transformed = projects.map(transformProject);
-        setFeatures(transformed);
+        setFeatures(filterOutBacklog(transformed));
       } catch (error) {
         console.error("Error fetching projects:", error);
       } finally {
@@ -701,6 +707,7 @@ const Example = () => {
     }
 
     try {
+      setIsCreating(true);
       // Fetch reference data to get IDs
       const results = await Promise.all([
         getAllStatuses(),
@@ -759,7 +766,7 @@ const Example = () => {
 
       // Add to local state
       const transformed = transformProject(createdProject);
-      setFeatures([...features, transformed]);
+      setFeatures(filterOutBacklog([...features, transformed]));
 
       // Reset form
       setIsDialogOpen(false);
@@ -774,6 +781,8 @@ const Example = () => {
     } catch (error) {
       console.error("Error creating project:", error);
       alert("Failed to create project. Please try again.");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -784,6 +793,7 @@ const Example = () => {
     }
 
     try {
+      setIsUpdating(true);
       // Fetch reference data to get IDs
       const results = await Promise.all([
         getAllStatuses(),
@@ -839,9 +849,14 @@ const Example = () => {
 
       // Update local state
       const transformed = transformProject(updatedProject);
-      setFeatures(
-        features.map((f) => (f.id === editProject.id ? transformed : f))
-      );
+
+      setFeatures((prev) => {
+        if (transformed.status.name === "Backlog") {
+          return prev.filter((f) => f.id !== editProject.id);
+        }
+
+        return prev.map((f) => (f.id === editProject.id ? transformed : f));
+      });
 
       // Reset form and close dialog
       setIsEditDialogOpen(false);
@@ -857,6 +872,8 @@ const Example = () => {
     } catch (error) {
       console.error("Error updating project:", error);
       alert("Failed to update project. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -899,87 +916,18 @@ const Example = () => {
   }
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="border-b p-4">
-          <h2 className="text-lg font-semibold">Filters</h2>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Filter by Stream</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {streamMetadata.map((stream) => {
-                  const StreamIcon = stream.icon;
-                  const count = features.filter(
-                    (f) => f.product.name === stream.name
-                  ).length;
-                  return (
-                    <SidebarMenuItem key={stream.name}>
-                      <div className="flex items-center gap-3 px-2 py-2">
-                        <Checkbox
-                          id={`stream-${stream.name}`}
-                          checked={selectedStreams.includes(stream.name)}
-                          onCheckedChange={() => toggleStream(stream.name)}
-                        />
-                        <label
-                          htmlFor={`stream-${stream.name}`}
-                          className="flex items-center gap-2 flex-1 cursor-pointer text-sm font-medium"
-                        >
-                          <div
-                            className="p-1.5 rounded-md text-white"
-                            style={{ backgroundColor: stream.color }}
-                          >
-                            <StreamIcon className="h-3.5 w-3.5" />
-                          </div>
-                          <span>{stream.name}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">
-                            ({count})
-                          </span>
-                        </label>
-                      </div>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          <Separator />
-          <SidebarGroup>
-            <SidebarGroupContent className="px-4 py-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mb-2"
-                onClick={() =>
-                  setSelectedStreams(streamMetadata.map((s) => s.name))
-                }
-              >
-                Select All
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setSelectedStreams([])}
-              >
-                Clear All
-              </Button>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
+    <SidebarInset>
         <Tabs
           className="not-prose size-full gap-0 divide-y"
           defaultValue="gantt"
         >
           <div className="flex items-center justify-between gap-4 p-4 border-b">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
               <SidebarTrigger />
-              <Separator orientation="vertical" className="h-6" />
+              <Separator orientation="vertical" className="h-6 bg-muted" />
               <div>
-                <p className="font-medium">pay.com.au - Roadmap</p>
+              <p className="font-medium">Roadmap</p>
+
                 <p className="text-xs text-muted-foreground">
                   {filteredFeatures.length} project
                   {filteredFeatures.length !== 1 ? "s" : ""}
@@ -1124,11 +1072,12 @@ const Example = () => {
                     <Button
                       variant="outline"
                       onClick={() => setIsDialogOpen(false)}
+                      disabled={isCreating}
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleCreateProject}>
-                      Create Project
+                    <Button onClick={handleCreateProject} disabled={isCreating}>
+                      {isCreating ? "Working" : "Create Project"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -1274,11 +1223,12 @@ const Example = () => {
                     <Button
                       variant="outline"
                       onClick={() => setIsEditDialogOpen(false)}
+                      disabled={isUpdating}
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleUpdateProject}>
-                      Update Project
+                    <Button onClick={handleUpdateProject} disabled={isUpdating}>
+                      {isUpdating ? "Working" : "Update Project"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -1294,6 +1244,131 @@ const Example = () => {
               </TabsList>
             </div>
           </div>
+
+          {/* Stream Filters - Horizontal Bar */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/30">
+            <Label className="text-sm font-medium whitespace-nowrap">
+              Filter by Stream:
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="min-w-[200px] justify-between"
+                >
+                  {selectedStreams.length === streamMetadata.length
+                    ? "All Streams"
+                    : selectedStreams.length === 0
+                    ? "No streams selected"
+                    : `${selectedStreams.length} selected`}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search streams..." />
+                  <CommandList>
+                    <CommandEmpty>No stream found.</CommandEmpty>
+                    <CommandGroup>
+                      {streamMetadata.map((stream) => {
+                        const StreamIcon = stream.icon;
+                        const isSelected = selectedStreams.includes(
+                          stream.name
+                        );
+                        const count = features.filter(
+                          (f) => f.product.name === stream.name
+                        ).length;
+                        return (
+                          <CommandItem
+                            key={stream.name}
+                            value={stream.name}
+                            onSelect={() => toggleStream(stream.name)}
+                          >
+                            <div
+                              className={`mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              }`}
+                            >
+                              <Check className="h-4 w-4" />
+                            </div>
+                            <div
+                              className="mr-2 p-1 rounded text-white"
+                              style={{ backgroundColor: stream.color }}
+                            >
+                              <StreamIcon className="h-3 w-3" />
+                            </div>
+                            <span>{stream.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              ({count})
+                            </span>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setSelectedStreams(streamMetadata.map((s) => s.name))
+              }
+            >
+              Select All
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedStreams([])}
+            >
+              Clear All
+            </Button>
+            {selectedStreams.length > 0 &&
+              selectedStreams.length < streamMetadata.length && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex flex-wrap gap-1">
+                    {selectedStreams.slice(0, 3).map((streamName) => {
+                      const stream = streamMetadata.find(
+                        (s) => s.name === streamName
+                      );
+                      if (!stream) return null;
+                      const StreamIcon = stream.icon;
+                      return (
+                        <div
+                          key={streamName}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border bg-background"
+                        >
+                          <div
+                            className="p-0.5 rounded text-white"
+                            style={{ backgroundColor: stream.color }}
+                          >
+                            <StreamIcon className="h-2.5 w-2.5" />
+                          </div>
+                          <span>{streamName}</span>
+                          <button
+                            onClick={() => toggleStream(streamName)}
+                            className="ml-1 hover:bg-muted rounded-sm"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {selectedStreams.length > 3 && (
+                      <div className="px-2 py-1 text-xs text-muted-foreground">
+                        +{selectedStreams.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+          </div>
+
           {views.map((view) => (
             <TabsContent
               className="overflow-hidden"
@@ -1424,12 +1499,11 @@ const Example = () => {
                 >
                   Close
                 </Button>
-    </div>
+              </div>
             </DialogContent>
           </Dialog>
         </Tabs>
       </SidebarInset>
-    </SidebarProvider>
   );
 };
 
